@@ -1,0 +1,9 @@
+{
+  "candidates": [
+    { "candidate": "manny", "quotes": ["Manny 1", "Manny 2"] },
+    { "candidate": "bongbong", "quotes": ["Bong 1", "Bong 2"] },
+    { "candidate": "isko", "quotes": ["Isko 1", "Isko 2"] },
+    { "candidate": "leni", "quotes": ["Leni 1", "Leni 2"] },
+    { "candidate": "ping", "quotes": ["Ping 1", "Ping 2"] }
+  ]
+}
