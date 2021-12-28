@@ -56,3 +56,76 @@ bot.on("callback_query", function onCallbackQuery(callbackQuery) {
     bot.sendMessage(msg.chat.id, quote);
   }
 });
+
+const wait = [];
+const report_resp = [];
+
+bot.onText(/REPORT/, (msg) => {
+  const chatId = msg.chat.id;
+  bot.sendMessage(chatId, "What is your name?");
+  wait.push("name");
+});
+
+bot.on('message', (msg) => {
+  const chatId = msg.chat.id;
+  if (wait.includes("name")) {
+	//bot.sendMessage(chatId, msg.text);
+	report_resp.push(msg.text);
+	wait.splice(wait.indexOf("name"), 1);
+	
+	wait.push("email");
+	bot.sendMessage(chatId, "What is your email?");
+  } 
+  
+  else if (wait.includes("email")) {
+	//bot.sendMessage(chatId, msg.text);
+	report_resp.push(msg.text);
+	wait.splice(wait.indexOf("email"), 1);
+	
+	wait.push("report");
+	bot.sendMessage(chatId, "What is your report?");
+  } 
+
+  else if (wait.includes("report")) {
+	//bot.sendMessage(chatId, msg.text);
+	report_resp.push(msg.text);
+	wait.splice(wait.indexOf("report"), 1);
+	
+	bot.sendMessage(chatId, "Your name is " + report_resp.slice(0,1)
+		+ "\nYour email is " + report_resp.slice(1,2)
+		+ "\nYour report is " + report_resp.slice(2,3));
+	
+	bot.sendMessage(chatId, "Are these details correct?", {
+		reply_markup: {
+		  inline_keyboard: [
+			[
+			  {
+				text: "Yes",
+				callback_data: "yes",
+			  },
+			],
+			[
+			  {
+				text: "No",
+				callback_data: "no",
+			  },
+			],
+		  ],
+		},
+	  });
+  }	  
+});
+
+bot.on("callback_query", function onCallbackQuery(callbackQuery) {
+  const data = callbackQuery.data;
+  const msg = callbackQuery.message;
+
+  if (msg.text === "Are these details correct?") {
+	  if (data == "yes") {
+		bot.sendMessage(msg.chat.id, "Sending email");
+		//send email
+	  } else {
+		  bot.sendMessage(msg.chat.id, "Try again");
+	  }
+  }
+});
