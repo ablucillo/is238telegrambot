@@ -4,8 +4,11 @@ const TelegramBot = require("node-telegram-bot-api");
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 const quotes = require("./quotes.json");
 
+const SELECT_CANDIDATE = "Select candidate";
+const CONFIRM_REPORT = "Are these details correct?";
+
 bot.onText(/QUOTES/, function (msg, match) {
-  bot.sendMessage(msg.chat.id, "Select candidate", {
+  bot.sendMessage(msg.chat.id, SELECT_CANDIDATE, {
     reply_markup: {
       inline_keyboard: [
         [
@@ -44,88 +47,79 @@ bot.onText(/QUOTES/, function (msg, match) {
 });
 
 bot.on("callback_query", function onCallbackQuery(callbackQuery) {
-  const data = callbackQuery.data;
-  const msg = callbackQuery.message;
+	const data = callbackQuery.data;
+	const msg = callbackQuery.message;
 
-  if (msg.text === "Select candidate") {
-    const parsed_quotes = JSON.parse(JSON.stringify(quotes.candidates));
-    let candidate = parsed_quotes.filter((c) => c.candidate === data)[0];
-    let quote =
-      candidate.quotes[Math.floor(Math.random() * candidate.quotes.length)];
+	if (msg.text === SELECT_CANDIDATE) {
+		const parsed_quotes = JSON.parse(JSON.stringify(quotes.candidates));
+		let candidate = parsed_quotes.filter((c) => c.candidate === data)[0];
+		let quote =
+		  candidate.quotes[Math.floor(Math.random() * candidate.quotes.length)];
 
-    bot.sendMessage(msg.chat.id, quote);
-  }
+		bot.sendMessage(msg.chat.id, quote);
+	} else if (msg.text === CONFIRM_REPORT) {
+		if (data == "yes") {
+			bot.sendMessage(msg.chat.id, "Sending email");
+			//TODO: Need to send email
+		} else {
+			bot.sendMessage(msg.chat.id, "Try again");
+		}
+	}
 });
 
-const wait = [];
+
+//TODO: First, need to check if user is logged in
+//TODO: Then, these variables need to be associated with a specific logged in user
+const wait = []; 
 const report_resp = [];
 
 bot.onText(/REPORT/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, "What is your name?");
-  wait.push("name");
+	const chatId = msg.chat.id;
+	bot.sendMessage(chatId, "What is your name?");
+	wait.push("name");
 });
 
+//Wait for any message, get details
 bot.on('message', (msg) => {
-  const chatId = msg.chat.id;
-  if (wait.includes("name")) {
-	//bot.sendMessage(chatId, msg.text);
-	report_resp.push(msg.text);
-	wait.splice(wait.indexOf("name"), 1);
-	
-	wait.push("email");
-	bot.sendMessage(chatId, "What is your email?");
-  } 
-  
-  else if (wait.includes("email")) {
-	//bot.sendMessage(chatId, msg.text);
-	report_resp.push(msg.text);
-	wait.splice(wait.indexOf("email"), 1);
-	
-	wait.push("report");
-	bot.sendMessage(chatId, "What is your report?");
-  } 
+	const chatId = msg.chat.id;
+	if (wait.includes("name")) {
+		report_resp.push(msg.text);
+		wait.splice(wait.indexOf("name"), 1);
 
-  else if (wait.includes("report")) {
-	//bot.sendMessage(chatId, msg.text);
-	report_resp.push(msg.text);
-	wait.splice(wait.indexOf("report"), 1);
-	
-	bot.sendMessage(chatId, "Your name is " + report_resp.slice(0,1)
-		+ "\nYour email is " + report_resp.slice(1,2)
-		+ "\nYour report is " + report_resp.slice(2,3));
-	
-	bot.sendMessage(chatId, "Are these details correct?", {
-		reply_markup: {
-		  inline_keyboard: [
-			[
-			  {
-				text: "Yes",
-				callback_data: "yes",
-			  },
-			],
-			[
-			  {
-				text: "No",
-				callback_data: "no",
-			  },
-			],
-		  ],
-		},
-	  });
-  }	  
-});
+		wait.push("email");
+		bot.sendMessage(chatId, "What is your email?");
+	} else if (wait.includes("email")) {
+		report_resp.push(msg.text);
+		//TODO: Need to validate email if correct format
+		wait.splice(wait.indexOf("email"), 1);
+		
+		wait.push("report");
+		bot.sendMessage(chatId, "What is your report?");
+	} else if (wait.includes("report")) {
+		report_resp.push(msg.text);
+		wait.splice(wait.indexOf("report"), 1);
 
-bot.on("callback_query", function onCallbackQuery(callbackQuery) {
-  const data = callbackQuery.data;
-  const msg = callbackQuery.message;
-
-  if (msg.text === "Are these details correct?") {
-	  if (data == "yes") {
-		bot.sendMessage(msg.chat.id, "Sending email");
-		//send email
-	  } else {
-		  bot.sendMessage(msg.chat.id, "Try again");
-	  }
-  }
+		bot.sendMessage(chatId, "Your name is " + report_resp.slice(0,1)
+			+ "\nYour email is " + report_resp.slice(1,2)
+			+ "\nYour report is " + report_resp.slice(2,3));
+	
+		bot.sendMessage(chatId, CONFIRM_REPORT, {
+			reply_markup: {
+			  inline_keyboard: [
+				[
+				  {
+					text: "Yes",
+					callback_data: "yes",
+				  },
+				],
+				[
+				  {
+					text: "No",
+					callback_data: "no",
+				  },
+				],
+			  ],
+			},
+		});
+	}	  
 });
