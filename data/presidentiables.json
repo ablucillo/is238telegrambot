@@ -1,0 +1,32 @@
+[
+    [
+        {
+            "text": "Emmanuel 'Manny' Pacquiao",
+            "callback_data": "quote_manny"
+        }
+    ],
+    [
+        {
+            "text": "Ferdinand 'Bongbong' Marcos",
+            "callback_data": "quote_bongbong"
+        }
+    ],
+    [
+        {
+            "text": "Francisco 'Isko' Moreno",
+            "callback_data": "quote_isko"
+        }
+    ],
+    [
+        {
+            "text": "Ma. Leonor 'Leni' Robredo",
+            "callback_data": "quote_leni"
+        }
+    ],
+    [
+        {
+            "text": "Panfilo 'Ping' Lacson",
+            "callback_data": "quote_ping"
+        }
+    ]
+]
