@@ -28,6 +28,13 @@
         "\"Rest, but don't quit. You have to thrive, kahit ano man ang hinaharap mong suliranin. We must continue with hope.\""
       ]
     },
-    { "candidate": "ping", "quotes": ["Ping 1", "Ping 2"] }
+    { "candidate": "ping", 
+     "quotes": [
+       "From the very beginning, palagi kaming consistent.", 
+       "Pag sinabi namin, ginagawa namin. We always walk the talk.",
+       "We have so many problems, and the solution can only come from tough leaders - those with ability, honesty, and bravery.",
+       "Defeatist attitude is not in my DNA.",
+       "Anything doable under a good government."
+      ] }
   ]
 }
