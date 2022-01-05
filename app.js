@@ -40,21 +40,24 @@ const sendOtp = async (number) => {
     });
 };
 
-const verifyOtp = async otp => {
+const verifyOtp = async (number, otp) => {
   const verification = await client.verify.services(process.env.TWILIO_SERVICE_ID)
     .verificationChecks
-    .create({to: process.env.TWILIO_NUMBER, code: otp});
+    .create({to: `+${number}`, code: otp});
 	return verification.status;
 };
 
-bot.onText(/^\/log_in/, async (msg, match) => {
+bot.onText(/\/log_in/, async (msg, match) => {
+	let userPhoneNumber = '';
+
 	if (isUserLoggedIn) {
 		bot.sendMessage(msg.chat.id, "You are already logged in");
 	} else {
 		bot.sendMessage(msg.chat.id, "Do you want to log in using your contact information?", keyboardOption);
 		bot.on("message", async (msg, match) => {
 			if (msg.contact) {
-				await sendOtp(msg.contact.phone_number);
+				userPhoneNumber = msg.contact.phone_number
+				await sendOtp(userPhoneNumber);
 				bot.sendMessage(msg.chat.id, "Please enter the OTP we sent to your phone number", otpOption);
 			}
 		});
@@ -64,26 +67,34 @@ bot.onText(/^\/log_in/, async (msg, match) => {
 			let isVerified = false;
 
 			otp = match["input"];
-			isVerified = await verifyOtp(otp);
+			isVerified = await verifyOtp(userPhoneNumber, otp);
 			if (isVerified) {
 				bot.sendMessage(msg.chat.id, "Successfully logged in!");
 				isUserLoggedIn = true;
 			}
 		});
 	}
-
-
 });
 
-bot.onText(/^\/log_out/, async (msg, match) => {
-	bot.sendMessage(msg.chat.id, "Do you want to log out?", keyboardOption);
+bot.onText(/\/log_out/, async (msg, match) => {
+	if (isUserLoggedIn) {
+		bot.sendMessage(msg.chat.id, "Do you want to log out?", {
+			"parse_mode": "Markdown",
+			"reply_markup": {
+					"one_time_keyboard": true,
+					"keyboard": [[{
+						text: "Yes"
+					}], ["Cancel"]]
+			}
+		});
 
-	bot.on("message", async (msg, match) => {
-		if (msg.text !== "CANCEL") {
-			bot.sendMessage(msg.chat.id, "Successfully logged out!");
-			isUserLoggedIn = false;
-		}
-	});
+		bot.on("message", async (msg, match) => {
+			if (msg.text !== "CANCEL") {
+				bot.sendMessage(msg.chat.id, "Successfully logged out!");
+				isUserLoggedIn = false;
+			}
+		});
+	}
 })
 
 bot.onText(/QUOTES/, function (msg, match) {
