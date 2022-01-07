@@ -3,6 +3,10 @@ require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const bot = new TelegramBot(process.env.TELEGRAM_TOKEN, { polling: true });
 
+const twilio = require("twilio");
+const { exit } = require("process");
+const client = new twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
 const PRESIDENTIABLES = require('./data/presidentiables.json');
 const QUOTES = require("./data/quotes.json");
 const RESERVED_KEYWORDS = require('./data/reserved-keywords.json');
@@ -13,8 +17,91 @@ const { mailer, generateMessage } = require('./utils/mailer');
 const SELECT_CANDIDATE = "Select candidate";
 const CONFIRM_REPORT = "Are these details correct?";
 
-//TODO: First, need to check if user is logged in
-//TODO: Then, these variables need to be associated with a specific logged in user
+let isUserLoggedIn = false;
+const keyboardOption = {
+	"parse_mode": "Markdown",
+	"reply_markup": {
+		"one_time_keyboard": true,
+		"keyboard": [[{
+			text: "Yes",
+			request_contact: true
+		}], ["Cancel"]]
+	}
+};
+
+const otpOption = {
+	"parse_mode": "Markdown",
+	"reply_markup": {
+		"one_time_keyboard": true
+	}
+};
+
+const sendOtp = async (number) => {
+	await client.verify.services(process.env.TWILIO_SERVICE_ID)
+		.verifications
+		.create({
+			to: `+${number}`,
+			channel: 'sms'
+		});
+};
+
+const verifyOtp = async (number, otp) => {
+	const verification = await client.verify.services(process.env.TWILIO_SERVICE_ID)
+		.verificationChecks
+		.create({ to: `+${number}`, code: otp });
+	return verification.status;
+};
+
+bot.onText(/\/log_in/, async (msg, match) => {
+	let userPhoneNumber = '';
+
+	if (isUserLoggedIn) {
+		bot.sendMessage(msg.chat.id, "You are already logged in");
+	} else {
+		bot.sendMessage(msg.chat.id, "Do you want to log in using your contact information?", keyboardOption);
+		bot.on("message", async (msg, match) => {
+			if (msg.contact) {
+				userPhoneNumber = msg.contact.phone_number
+				await sendOtp(userPhoneNumber);
+				bot.sendMessage(msg.chat.id, "Please enter the OTP we sent to your phone number", otpOption);
+			}
+		});
+
+		bot.onText(/\d/, async (msg, match) => {
+			let otp = '';
+			let isVerified = false;
+
+			otp = match["input"];
+			isVerified = await verifyOtp(userPhoneNumber, otp);
+			if (isVerified) {
+				bot.sendMessage(msg.chat.id, "Successfully logged in!");
+				isUserLoggedIn = true;
+			}
+		});
+	}
+});
+
+bot.onText(/\/log_out/, async (msg, match) => {
+	if (isUserLoggedIn) {
+		bot.sendMessage(msg.chat.id, "Do you want to log out?", {
+			"parse_mode": "Markdown",
+			"reply_markup": {
+				"one_time_keyboard": true,
+				"keyboard": [[{
+					text: "Yes"
+				}], ["Cancel"]]
+			}
+		});
+
+		bot.on("message", async (msg, match) => {
+			if (msg.text !== "CANCEL") {
+				bot.sendMessage(msg.chat.id, "Successfully logged out!");
+				isUserLoggedIn = false;
+			}
+		});
+	}
+})
+
 /**
  * This function generates and sends the report (if user opted to).
  *
@@ -72,7 +159,7 @@ bot.onText(/QUOTES/, (msg) => {
 });
 
 bot.onText(/REPORT/, (msg) => {
-	if (!reportStarted) {
+	if (isUserLoggedIn && !reportStarted) {
 		reportDetails = {};
 		reportStarted = true;
 		bot.sendMessage(msg.chat.id, "What is your name?");
@@ -87,7 +174,7 @@ bot.on("message", (msg) => {
 		bot.sendMessage(chatId, "The input provided is reserved. Please try again.");
 		return;
 	}
-	
+
 	if (reportStarted) {
 		reportGenerator(chatId, msg);
 	}
@@ -107,7 +194,7 @@ bot.on("callback_query", function onCallbackQuery(callbackQuery) {
 
 		bot.sendMessage(msg.chat.id, quote);
 
-	// For the report email notification
+		// For the report email notification
 	} else if (data === 'report_yes') {
 		bot.sendMessage(msg.chat.id, "Sending email. Please wait.");
 		reportStarted = false;
