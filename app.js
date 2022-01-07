@@ -163,6 +163,9 @@ bot.onText(/REPORT/, (msg) => {
 		reportDetails = {};
 		reportStarted = true;
 		bot.sendMessage(msg.chat.id, "What is your name?");
+	} else {
+		bot.sendMessage(msg.chat.id, "Please log in to send a report.");
+		reportStarted = false;
 	}
 });
 
