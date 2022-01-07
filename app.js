@@ -207,6 +207,7 @@ bot.on("callback_query", function onCallbackQuery(callbackQuery) {
 				bot.sendMessage(msg.chat.id, "There was a problem sending the report to your email. Please try again later.");
 			} else {
 				bot.sendMessage(msg.chat.id, "Email sent!");
+				reportSent = false;
 			}
 		});
 
