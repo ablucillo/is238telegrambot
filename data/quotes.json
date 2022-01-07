@@ -1,5 +1,13 @@
 [
-  { "id": "quote_manny", "quotes": ["Manny 1", "Manny 2"] },
+  { "id": "quote_manny", 
+    "quotes": [
+      "\"It's just a game. Sometimes you win, sometimes you lose.\"",
+      "\"If you practice hard, you can win every battle.\"",
+      "\"Boxing is not for killing each other.\"",
+      "\"My success is not about the wealth and fame. I am most concerned with my relationship to God, which is the most important.\"",
+      "\"All those who are around me are the bridge to my success, so they are all important.\""
+    ]
+  },
   {
     "id": "quote_bongbong",
     "quotes": [
@@ -14,6 +22,9 @@
     "id": "quote_isko",
     "quotes": [
       "\"Rest, but don't quit. You have to thrive, kahit ano man ang hinaharap mong suliranin. We must continue with hope.\"",
+      "\"Manila has the foresight to build its own medicine Cabinet… We did not place our entire fate on the hands of a few Cabinet members.\"",
+      "\"I believe people should speak truth to power rather than threatening the people for speaking the truth.\"",
+      "\"A leader must not only think outside the box, he must also choose people outside his circle.\"",
       "\"I would rather fail doing something than fail doing nothing.\""
     ]
   },
