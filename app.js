@@ -21,6 +21,9 @@ const SELECT_CANDIDATE = "Select candidate";
 const CONFIRM_REPORT = "Are these details correct?";
 
 let isUserLoggedIn = false;
+let isLoginProcessStarted = false;
+const keywords = ["/log_in", "/log_out", "/report", "/quotes", "Cancel"];
+
 const keyboardOption = {
   parse_mode: "Markdown",
   reply_markup: {
@@ -54,74 +57,80 @@ const sendOtp = async (number) => {
 };
 
 const verifyOtp = async (number, otp) => {
-  const verification = await client.verify
-    .services(process.env.TWILIO_SERVICE_ID)
-    .verificationChecks.create({ to: `+${number}`, code: otp });
-  return verification.status;
+	try {
+		const verification = await client.verify.services(process.env.TWILIO_SERVICE_ID)
+			.verificationChecks
+			.create({ to: `+${number}`, code: otp });
+		return verification.status;
+	} catch (error) {
+		return error.message;
+	}
 };
 
-bot.onText(/\/log_in/, async (msg, match) => {
-  let userPhoneNumber = "";
+bot.onText(/\/LOG_IN/i, async (msg, match) => {
+	let userPhoneNumber = '';
 
-  if (isUserLoggedIn) {
-    bot.sendMessage(msg.chat.id, "You are already logged in");
-  } else {
-    bot.sendMessage(
-      msg.chat.id,
-      "Do you want to log in using your contact information?",
-      keyboardOption
-    );
-    bot.on("message", async (msg, match) => {
-      if (msg.contact) {
-        userPhoneNumber = msg.contact.phone_number;
-        await sendOtp(userPhoneNumber);
-        bot.sendMessage(
-          msg.chat.id,
-          "Please enter the OTP we sent to your phone number",
-          otpOption
-        );
-      }
-    });
+	if (isUserLoggedIn) {
+		bot.sendMessage(msg.chat.id, "You are already logged in");
+	} else {
+		isLoginProcessStarted = true;
 
-    bot.onText(/\d/, async (msg, match) => {
-      let otp = "";
-      let isVerified = false;
+		bot.sendMessage(msg.chat.id, "Do you want to log in using your contact information?", keyboardOption);
+		bot.on("message", async (msg, match) => {
+			if (msg.contact && isLoginProcessStarted) {
+				userPhoneNumber = msg.contact.phone_number
+				await sendOtp(userPhoneNumber);
+				bot.sendMessage(msg.chat.id, "Please enter the OTP we sent to your phone number", otpOption);
+			}
+		});
 
-      otp = match["input"];
-      isVerified = await verifyOtp(userPhoneNumber, otp);
-      if (isVerified) {
-        bot.sendMessage(msg.chat.id, "Successfully logged in!");
-        isUserLoggedIn = true;
-      }
-    });
-  }
+		bot.onText(/.+/, async (msg, match) => {
+			let otp = '';
+			let isVerified = false;
+			const pattern = /(\d+)/gi
+			otp = match["input"];
+			otp = otp.toLowerCase();
+
+			if (pattern.test(otp) && !keywords.includes(otp)) {
+				bot.sendMessage(msg.chat.id, "Please enter a valid OTP number.");
+			} else if (pattern.test(otp)) {
+				isVerified = await verifyOtp(userPhoneNumber, otp);
+				if (isVerified && isLoginProcessStarted) {
+					bot.sendMessage(msg.chat.id, "Successfully logged in!");
+					isUserLoggedIn = true;
+					isLoginProcessStarted = false;
+				}
+			}
+		});
+	}
 });
 
-bot.onText(/\/log_out/, async (msg, match) => {
-  if (isUserLoggedIn) {
-    bot.sendMessage(msg.chat.id, "Do you want to log out?", {
-      parse_mode: "Markdown",
-      reply_markup: {
-        one_time_keyboard: true,
-        keyboard: [
-          [
-            {
-              text: "Yes",
-            },
-          ],
-          ["Cancel"],
-        ],
-      },
-    });
+bot.onText(/\/LOG_OUT/i, async (msg, match) => {
+	isLoginProcessStarted = false;
 
-    bot.on("message", async (msg, match) => {
-      if (msg.text !== "CANCEL") {
-        bot.sendMessage(msg.chat.id, "Successfully logged out!");
-        isUserLoggedIn = false;
-      }
-    });
-  }
-});
+	if (!isUserLoggedIn) {
+		bot.sendMessage(msg.chat.id, "Please log in to continue.");
+	} else {
+		bot.sendMessage(msg.chat.id, "Do you want to log out?", {
+			"parse_mode": "Markdown",
+			"reply_markup": {
+				"one_time_keyboard": true,
+				"keyboard": [[{
+					text: "Yes"
+				}], ["Cancel"]]
+			}
+		});
+
+		bot.on("message", async (msg, match) => {
+			if (isUserLoggedIn && !keywords.includes(msg.text.toLowerCase())) {
+				bot.sendMessage(msg.chat.id, "Successfully logged out!");
+				isUserLoggedIn = false;
+				isLoginProcessStarted = false
+			}
+			isLoginProcessStarted = false
+		});
+	}
+})
 
 /**
  * This function generates and sends the report (if user opted to).
@@ -179,23 +188,23 @@ const reportGenerator = (chatId, msg) => {
   }
 };
 
-bot.onText(/QUOTES/, (msg) => {
-  bot.sendMessage(msg.chat.id, SELECT_CANDIDATE, {
-    reply_markup: {
-      inline_keyboard: [...PRESIDENTIABLES],
-    },
-  });
+bot.onText(/\/QUOTES/i, (msg) => {
+	bot.sendMessage(msg.chat.id, SELECT_CANDIDATE, {
+		reply_markup: {
+			inline_keyboard: [...PRESIDENTIABLES]
+		}
+	});
 });
 
-bot.onText(/REPORT/, (msg) => {
-  if (isUserLoggedIn && !reportStarted) {
-    reportDetails = {};
-    reportStarted = true;
-    bot.sendMessage(msg.chat.id, "What is your name?");
-  } else {
-    bot.sendMessage(msg.chat.id, "Please log in to send a report.");
-    reportStarted = false;
-  }
+bot.onText(/\/REPORT/i, (msg) => {
+	if (isUserLoggedIn && !reportStarted) {
+		reportDetails = {};
+		reportStarted = true;
+		bot.sendMessage(msg.chat.id, "What is your name?");
+	} else {
+		bot.sendMessage(msg.chat.id, "Please log in to send a report.");
+		reportStarted = false;
+	}
 });
 
 bot.on("message", (msg) => {
