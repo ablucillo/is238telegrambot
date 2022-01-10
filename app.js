@@ -91,16 +91,17 @@ bot.onText(/\/LOG_IN/i, async (msg, match) => {
 			otp = match["input"];
 			otp = otp.toLowerCase();
 
-			if (pattern.test(otp) && !keywords.includes(otp)) {
-				bot.sendMessage(msg.chat.id, "Please enter a valid OTP number.");
-			} else if (pattern.test(otp)) {
+			if (pattern.test(otp)) {
 				isVerified = await verifyOtp(userPhoneNumber, otp);
+
 				if (isVerified && isLoginProcessStarted) {
 					bot.sendMessage(msg.chat.id, "Successfully logged in!");
 					isUserLoggedIn = true;
 					isLoginProcessStarted = false;
 				}
-			}
+			} else if (isLoginProcessStarted && !pattern.test(otp)) {
+        bot.sendMessage(msg.chat.id, "Please enter a valid OTP number.");
+      }
 		});
 	}
 });
